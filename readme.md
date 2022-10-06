@@ -43,29 +43,38 @@ The WHILE language is a simple imperative language. The instruction set is very 
 
 #### Comment
 
-> # <comment>
+```
+# <comment>
+```
 
 #### Assignment
 
-> <variable> := <arithmetic expression>
+```
+<variable> := <arithmetic expression>
+```
 
 #### Flow control
 
 Indentation of code blocks is not needed (the interpreter ignores it), but is supported to write clearer scripts.
 
-> if <condition> then {
->     <code block>
-> } else {
->     <code block>
-> }
-
-> while <condition> do {
->     <code block>
-> }
+```
+if <condition> then {
+    <code block>
+} else {
+    <code block>
+}    
+```
+```
+while <condition> do {
+    <code block>
+}
+```
 
 #### Printing
 
-> print <arithmetic expression>
+```
+print <arithmetic expression>
+```
 
 ### Additionnal details
 
@@ -79,11 +88,11 @@ For a more precise description of the syntax used, one can either:
 
 ## License
 
-Please see LICENSE.
+Please see `LICENSE`.
 
 
 ## Use
 
-To interpret any WHILE script, one can either:
-- use the ocaml interpreter: `ocaml interpreteur.ml <file name>`,
+To interpret any `.while` script, one can either:
+- use the ocaml interpreter: `ocaml interpreter.ml <file name>`,
 - compile the interpreter to get a standalone executable: `ocamlopt -o while_interpreter interpreter.ml`.
