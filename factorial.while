@@ -1,0 +1,19 @@
+# Factorielle de X
+# X doit être positif
+# A correspond à X!
+
+# Valeurs d'entrée
+X := 5
+
+# Initialisation des variables de calcul
+A := 1
+B := X
+
+# Calcul
+while 2 <= B do {
+    A := A B *
+    B := B 1 -
+}
+
+# Affichage des résultats
+print A

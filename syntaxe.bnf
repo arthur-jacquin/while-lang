@@ -1,0 +1,41 @@
+<variable>    ::= "A" | "B" | "C" | "D" | "E" | "F" | "G"
+                | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+                | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+                | "V" | "W" | "X" | "Y" | "Z"
+
+<digit>       ::= "0" | "1" | "2" | "3" | "4"
+                | "5" | "6" | "7" | "8" | "9"
+
+<integer>     ::= <digit>
+                | <digit> <constant>
+
+<arithm>      ::= <integer>                     ; non-negative integer
+                | <variable>
+                | <arithm> <arithm> "+"         ; addition
+                | <arithm> <arithm> "-"         ; substraction
+                | <arithm> <arithm> "*"         ; multiplication
+
+<condition>   ::= "TRUE"
+                | "FALSE"
+                | <arithm> "==" <arithm>
+                | <arithm> "<=" <arithm>
+                | "(" <arithm> ") AND (" <arithm> ")"
+                | "(" <arithm> ") OR (" <arithm> ")"
+                | "NOT (" <condition> ")"
+
+<instruction> ::= "#" <comment>                 ; comment
+                | <variable> "::=" <arithm>     ; assignment
+                | "if" <condition> "then {" <EOL>
+                  <code_block>
+                  "} else {" <EOL>
+                  <code_block>
+                  "}"
+                | "while" <condition> "{" <EOL>
+                  <code_block>
+                  "}"
+                | "print" <arithm>
+                | " " <instruction>             ; support for tabulation
+
+<code_block>  ::= <EOL>                         ; empty line
+                | <instruction> <EOL>
+                | <code_block> <instruction>    ; multiple lines 
