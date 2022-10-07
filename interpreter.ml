@@ -112,42 +112,30 @@ let parse_variable (s: string) : variable =
     | "Z" -> Z
     | _ -> raise ParsingError;;
 
-let parse_arithm (s: string) : arithm = (* Reverse Polish Notation *)
-    let pile : arithm list ref = ref []
-    and n : int = String.length s
-    and i : int ref = ref 0
-    and number_start : int ref = ref 0
-    and reading_integer : bool ref = ref false
-    in begin
-    while !i < n do
-        let new_pile, increment =
-            match int_of_char (s.[!i]), !pile, !reading_integer with
-            | (* space *) 32, p, true ->
-                begin
-                    reading_integer := false;
-                    (N (int_of_string (String.sub s !number_start (!i - !number_start))))::(!pile), 1
-                end
-            | (* 0-9 *) c, p, true when (48 <= c) && (c < 58) -> p, 1
-            | (* 0-9 *) c, p, false when (48 <= c) && (c < 58) ->
-                begin
-                    reading_integer := true;
-                    number_start := !i;
-                    p, 1
-                end
-            | (* A-Z *) c, p, false when (65 <= c) && (c <= 90) ->
-                    (V (parse_variable (Char.escaped s.[!i])))::p, 2
-            | (* + *) 43, a::b::q, false -> (Plus (b, a))::q, 2
-            | (* - *) 45, a::b::q, false -> (Minus (b, a))::q, 2
-            | (* * *) 42, a::b::q, false -> (Mult (b, a))::q, 2
+let parse_arithm (s: string) : arithm = (* RPN *)
+    let n : int = String.length s in
+    let rec aux (pile: arithm list) (i: int) (nb_st: int) : arithm =
+        (* nb_st = starting position of the integer being read *)
+        (*         -1 when no integer is being read *)
+        if i >= n then
+            match pile, nb_st != -1 with
+            | [], true -> N (int_of_string (String.sub s nb_st (n-nb_st)))
+            | res::[], false -> res
             | _ -> raise ParsingError
-        in (pile := new_pile; i := !i + increment)
-    done;
-    if !reading_integer then
-        pile := (N (int_of_string (String.sub s !number_start (n - !number_start))))::(!pile);
-    match !pile with
-    | res::[] -> res
-    | _ -> raise ParsingError;
-    end;;
+        else
+            match int_of_char (s.[i]), pile, nb_st != -1 with
+            | 32, p, true -> (* space *)
+                let integer = int_of_string (String.sub s nb_st (i-nb_st)) in
+                    aux ((N integer)::pile) (i+1) (-1)
+            | c, p, _ when (48 <= c) && (c < 58) -> (* 0-9 *)
+                aux p (i+1) (if nb_st = -1 then i else nb_st)
+            | c, p, false when (65 <= c) && (c <= 90) -> (* A-Z *)
+                aux ((V (parse_variable (Char.escaped s.[i])))::p) (i+2) (-1)
+            | 43, a::b::q, false -> aux ((Plus (b, a))::q) (i+2) (-1)
+            | 45, a::b::q, false -> aux ((Minus (b, a))::q) (i+2) (-1)
+            | 42, a::b::q, false -> aux ((Mult (b, a))::q) (i+2) (-1)
+            | _ -> raise ParsingError
+    in aux [] 0 (-1);;
 
 let find_w_X (s: string) (w: string) : (bool * string) =
     let n = String.length s
