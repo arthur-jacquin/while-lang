@@ -2,32 +2,32 @@
 # A correspond à pgcd(X, Y)
 
 # Valeurs d'entrée
-X := 21
-Y := 0 15 -
+X := [21];
+Y := [0 15 -];
 
 # Initialisation des variables de calcul
-A := X
-B := Y
-C := 0
+A := [X];
+B := [Y];
+C := [0];
 
 # Calcul
-if A <= 0 then {
-    A := 0 A -
+if [A] <= [0] then {
+    A := [0 A -];
 } else {
-}
-if B <= 0 then {
-    B := 0 B -
+};
+if [B] <= [0] then {
+    B := [0 B -];
 } else {
-}
-while NOT (B == 0) do {
-    if NOT (B <= A) then {
-        C := A
-        A := B
-        B := C
+};
+while NOT ([B] == [0]) do {
+    if NOT ([B] <= [A]) then {
+        C := [A];
+        A := [B];
+        B := [C];
     } else {
-        A := A B -
-    }
-}
+        A := [A B -];
+    };
+};
 
 # Affichage des résultats
-print A
+print [A];

@@ -9,33 +9,26 @@
 <integer>     ::= <digit>
                 | <digit> <constant>
 
-<arithm>      ::= <integer>                     ; non-negative integer
+<arithm>      ::= <integer>                         ; non-negative integer
                 | <variable>
-                | <arithm> <arithm> "+"         ; addition
-                | <arithm> <arithm> "-"         ; substraction
-                | <arithm> <arithm> "*"         ; multiplication
+                | <arithm> <arithm> "+"             ; addition
+                | <arithm> <arithm> "-"             ; substraction
+                | <arithm> <arithm> "*"             ; multiplication
 
 <condition>   ::= "TRUE"
                 | "FALSE"
-                | <arithm> "==" <arithm>
-                | <arithm> "<=" <arithm>
+                | "[" <arithm> "] == [" <arithm> "]"
+                | "[" <arithm> "] <= [" <arithm> "]"
                 | "(" <arithm> ") AND (" <arithm> ")"
                 | "(" <arithm> ") OR (" <arithm> ")"
                 | "NOT (" <condition> ")"
 
-<instruction> ::= "#" <comment>                 ; comment
-                | <variable> "::=" <arithm>     ; assignment
-                | "if" <condition> "then {" <EOL>
-                  <code_block>
-                  "} else {" <EOL>
-                  <code_block>
-                  "}"
-                | "while" <condition> "{" <EOL>
-                  <code_block>
-                  "}"
-                | "print" <arithm>
-                | " " <instruction>             ; support for tabulation
+<instruction> ::= "#" <comment>                     ; comment
+                | <variable> " ::= [" <arithm> "];" ; assignment
+                | "if " <condition> " then {" <code_block> "} else {" <code_block> "}";
+                | "while " <condition> "{" <code_block> "};"
+                | "print [" <arithm> "];"
+                | " " <instruction>                 ; support for tabulation
 
-<code_block>  ::= <EOL>                         ; empty line
-                | <instruction> <EOL>
-                | <code_block> <instruction>    ; multiple lines 
+<code_block>  ::= <instruction>
+                | <code_block> <instruction>

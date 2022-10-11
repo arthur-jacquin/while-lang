@@ -82,158 +82,254 @@ let rec int_command (c: command) (m: sigma) : sigma =
 
 (*** PARSING ***)
 
-let parse_variable (s: string) : variable =
-    match s with
-    | "A" -> A
-	| "B" -> B
-	| "C" -> C
-    | "D" -> D
-    | "E" -> E
-    | "F" -> F
-    | "G" -> G
-    | "H" -> H
-    | "I" -> I
-    | "J" -> J
-    | "K" -> K
-    | "L" -> L
-    | "M" -> M
-    | "N" -> N
-    | "O" -> O
-    | "P" -> P
-    | "Q" -> Q
-    | "R" -> R
-    | "S" -> S
-    | "T" -> T
-    | "U" -> U
-    | "V" -> V
-    | "W" -> W
-	| "X" -> X
-	| "Y" -> Y
-    | "Z" -> Z
-    | _ -> raise ParsingError;;
+(* Check on argument number *)
+if (Array.length Sys.argv) != 2 then raise InvalidNumberOfArguments;;
 
-let parse_arithm (s: string) : arithm = (* RPN *)
-    let n : int = String.length s in
-    let rec aux (pile: arithm list) (i: int) (nb_st: int) : arithm =
-        (* nb_st = starting position of the integer being read *)
-        (*         -1 when no integer is being read *)
-        if i >= n then
-            match pile, nb_st != -1 with
-            | [], true -> N (int_of_string (String.sub s nb_st (n-nb_st)))
-            | res::[], false -> res
-            | _ -> raise ParsingError
-        else
-            match int_of_char (s.[i]), pile, nb_st != -1 with
-            | 32, p, true -> (* space *)
-                let integer = int_of_string (String.sub s nb_st (i-nb_st)) in
-                    aux ((N integer)::pile) (i+1) (-1)
-            | c, p, _ when (48 <= c) && (c < 58) -> (* 0-9 *)
-                aux p (i+1) (if nb_st = -1 then i else nb_st)
-            | c, p, false when (65 <= c) && (c <= 90) -> (* A-Z *)
-                aux ((V (parse_variable (Char.escaped s.[i])))::p) (i+2) (-1)
-            | 43, a::b::q, false -> aux ((Plus (b, a))::q) (i+2) (-1)
-            | 45, a::b::q, false -> aux ((Minus (b, a))::q) (i+2) (-1)
-            | 42, a::b::q, false -> aux ((Mult (b, a))::q) (i+2) (-1)
-            | _ -> raise ParsingError
-    in aux [] 0 (-1);;
-
-let find_w_X (s: string) (w: string) : (bool * string) =
-    let n = String.length s
-    and nw = String.length w in
-        if nw <= n then (String.sub s 0 nw = w, String.sub s nw (n - nw))
-        else (false, "");;
-
-let find_X_w (s: string) (w: string) : (bool * string) =
-    let n = String.length s
-    and nw = String.length w in
-        if nw <= n then (String.sub s (n - nw) nw = w, String.sub s 0 (n - nw))
-        else (false, "");;
-
-let find_w_X_v (s: string) (w: string) (v: string) : (bool * string) =
-    let b1, x = find_w_X s w in
-    let b2, y = find_X_w x v in
-        (b1 && b2, y);;
-
-let find_X_w_Y (s: string) (w: string) : (bool * string * string) =
-    let n = String.length s
-    and nw = String.length w
-    and i = ref 0
-    in begin
-        while (!i <= n - nw) && not(String.sub s !i nw = w) do
-            i := !i + 1;
-        done;
-        if !i > n - nw then (false, "", "")
-        else (true, String.sub s 0 !i, String.sub s (!i + nw) (n - !i - nw))
-    end;;
-
-let find_X_w_Y_v (s: string) (w: string) (v: string) : (bool * string * string) =
-    let b1, x, y_v = find_X_w_Y s w in
-    let b2, y = find_X_w y_v v in
-        (b1 && b2, x, y);;
-
-let find_w_X_v_Y_u (s: string) (w: string) (v: string) (u: string) : (bool * string * string) =
-    let b1, x = find_w_X s w in
-    let b2, y, z = find_X_w_Y_v x v u in
-        (b1 && b2, y, z);;
+(* First read, to convert the script to a string *)
 
 let strip (s: string) : string =
     let n = String.length s
     and i = ref 0 in
+    begin
         while !i < n && s.[!i] = ' ' do
             i := !i + 1
         done;
-        String.sub s !i (n - !i);;
-
-let rec parse_boolean (s: string) : boolean =
-    if s = "TRUE" then True
-    else if s = "FALSE" then False
-    else let b, x, y = find_w_X_v_Y_u s "(" ") AND (" ")" in if b then And (parse_boolean x, parse_boolean y)
-    else let b, x, y = find_w_X_v_Y_u s "(" ") OR ("  ")" in if b then Or (parse_boolean x, parse_boolean y)
-    else let b, x    = find_w_X_v     s "NOT ("       ")" in if b then Not (parse_boolean x)
-    else let b, x, y = find_X_w_Y     s     " == "        in if b then Equal (parse_arithm x, parse_arithm y)
-    else let b, x, y = find_X_w_Y     s     " <= "        in if b then Lower (parse_arithm x, parse_arithm y)
-    else raise ParsingError;;
-
-let rec parse_program (ic: in_channel) : command =
-    let res : command ref = ref Skip
-    and continue : bool ref = ref true
-    and parse_instruction (s: string) : command =
-        let b, x, y   = find_X_w_Y s " := " in if b then
-            Affect (parse_variable x, parse_arithm y)
-        else let b, x = find_w_X_v s "if " " then {" in if b then
-            let then_block = parse_program ic in
-            let else_block = parse_program ic in
-                If (parse_boolean x, then_block, else_block)
-        else let b, x = find_w_X_v s "while " " do {" in if b then
-            While (parse_boolean x, parse_program ic)
-        else let b, x = find_w_X   s "print " in if b then
-            Print (parse_arithm x)
-        else raise ParsingError
-    in begin
-        while !continue do
-            try let line : string = strip (input_line ic) in
-                if line = "}" || line = "} else {" then continue := false
-                else if line = "" || line.[0] = '#' then ()
-                else res := Concat (!res, parse_instruction line)
-            with error -> match error with
-                | End_of_file -> (close_in ic; continue := false)
-                | ParsingError -> (close_in ic; raise ParsingError)
-                | e -> (close_in_noerr ic; raise e)
-        done;
-        !res;
+        String.sub s !i (n - !i);
     end;;
 
-let parse (file_name: string) : command =
+let string_of_file (file_name: string) : string =
     let ic : in_channel = open_in file_name in
-        parse_program ic;;
+    let rec aux (acc: string) : string =
+        try let line : string = strip (input_line ic) in
+            if line = "" || line.[0] = '#' then aux acc
+            else aux (acc ^ line)
+        with End_of_file -> (close_in ic; acc)
+    in aux "";;
+
+let s : string = string_of_file (Sys.argv.(1));;
+
+(* Iterator on the newly built string (always going forward) *)
+
+let n : int = String.length s;;
+let i : int ref = ref 0;;
+
+let collect () : char =
+    if !i = n then raise End_of_file
+    else let c = s.[!i] in (i := !i + 1; c);;
+
+(* Various tools *)
+
+let check (w: string) : unit =
+    (* Check if w is the next sequence to be read *)
+    (* NOTE: consume the string *)
+    let nw : int = String.length w in
+    let rec aux (k: int) : unit =
+        if k < nw then
+            try if collect() != w.[k] then raise ParsingError
+                else aux (k+1)
+            with End_of_file -> raise ParsingError
+    in aux 0;;
+
+let is_upper_letter (c: char) : bool =
+    let x : int = int_of_char c in (65 <= x) && (x < 91);;
+
+let is_digit (c: char) : bool =
+    let x : int = int_of_char c in (48 <= x) && (x < 58);;
+
+let digit_of_char (c: char) : int =
+    int_of_char c - 48;;
+
+let var_of_char (c: char) : variable =
+    match c with
+    | 'A' -> A
+	| 'B' -> B
+	| 'C' -> C
+    | 'D' -> D
+    | 'E' -> E
+    | 'F' -> F
+    | 'G' -> G
+    | 'H' -> H
+    | 'I' -> I
+    | 'J' -> J
+    | 'K' -> K
+    | 'L' -> L
+    | 'M' -> M
+    | 'N' -> N
+    | 'O' -> O
+    | 'P' -> P
+    | 'Q' -> Q
+    | 'R' -> R
+    | 'S' -> S
+    | 'T' -> T
+    | 'U' -> U
+    | 'V' -> V
+    | 'W' -> W
+	| 'X' -> X
+	| 'Y' -> Y
+    | 'Z' -> Z
+    | _ -> raise ParsingError;;
+
+(* Second read, to convert the string to a command object *)
+
+let parse_variable () : variable =
+    match collect() with
+    | c when is_upper_letter c -> var_of_char c
+    | _ -> raise ParsingError;;
+
+let parse_arithm () : arithm =
+    (* NOTE: use of the Reverse Polish Notation *)
+    let rec aux (recording_integer: bool) (acc: int) (spacing: bool) (stack: arithm list) : arithm =
+        (* recording_integer: wether an integer is being read *)
+        (* acc: the integer being read, or 0 if there is none *)
+        (* spacing: wether a space (or end) is expected next *)
+        (* stack: the RPN stack *)
+        match collect(), stack, recording_integer, spacing with
+        | ']', [],      true,  false -> N acc
+        | ']', res::[], false, true  -> res
+        | c,   _,       _,     true when c != ' ' -> raise ParsingError
+        | ' ', p,       true,  false -> aux false 0 false ((N acc)::p)
+        | ' ', p,       false, true  -> aux false 0 false p
+        | c,   p,       _,     false   when is_digit c ->
+                                        aux true (10*acc + digit_of_char c) false p
+        | c,   p,       false, false when is_upper_letter c ->
+                                        aux false 0 true ((V (var_of_char c))::p)
+        | '+', a::b::q, false, false -> aux false 0 true ((Plus  (b, a))::q)
+        | '-', a::b::q, false, false -> aux false 0 true ((Minus (b, a))::q)
+        | '*', a::b::q, false, false -> aux false 0 true ((Mult  (b, a))::q)
+        | _ -> raise ParsingError
+    in aux false 0 false [];;
+
+let rec parse_boolean () : boolean =
+    match collect() with
+    | 'T' -> (check "RUE"; True) (* True *) 
+    | 'F' -> (check "ALSE"; False) (* False *)
+    | '(' ->
+        begin
+            let b1 : boolean = parse_boolean() in
+            begin
+                check ") ";
+                match collect() with
+                | 'O' -> (* Or *)
+                    begin
+                        check "R (";
+                        let b2 : boolean = parse_boolean() in
+                        begin
+                            check ")";
+                            Or (b1, b2);
+                        end;
+                    end
+                | 'A' -> (* And *) 
+                    begin
+                        check "ND (";
+                        let b2 : boolean = parse_boolean() in
+                        begin
+                            check ")";
+                            And (b1, b2);
+                        end;
+                    end
+                | _ -> raise ParsingError
+            end
+        end
+    | 'N' -> (* Not *)
+        begin
+            check "OT (";
+            let b : boolean = parse_boolean() in
+            begin
+                check ")";
+                Not b;
+            end;
+        end
+    | '[' ->
+        begin
+            let a1 : arithm = parse_arithm() in
+            begin
+                check " ";
+                match collect() with
+                | '=' -> (* Equal *)
+                    begin
+                        check "= [";
+                        let a2 : arithm = parse_arithm() in
+                            Equal (a1, a2);
+                    end
+                | '<' -> (* Lower *) 
+                    begin
+                        check "= [";
+                        let a2 : arithm = parse_arithm() in
+                            Lower (a1, a2);
+                    end
+                | _ -> raise ParsingError
+            end
+        end
+    | _ -> raise ParsingError;;
+
+let rec parse_block () : command =
+    let parse_instruction (c: char) : command =
+        match c with
+        | _ when is_upper_letter c -> (* Affect *)
+            begin
+                check " := [";
+                let a = parse_arithm()
+                and v = var_of_char c in
+                begin
+                    check ";";
+                    Affect (v, a);
+                end;
+            end
+        | 'i' -> (* If *)
+            begin
+                check "f "; 
+                let condition = parse_boolean() in
+                begin
+                    check " then {";
+                    let then_block = parse_block() in
+                    begin
+                        check " else {";
+                        let else_block = parse_block() in
+                        begin
+                            check ";";
+                            If (condition, then_block, else_block);
+                        end;
+                    end;
+                end;
+            end
+        | 'w' -> (* While *) 
+            begin
+                check "hile "; 
+                let condition : boolean = parse_boolean() in
+                begin
+                    check " do {";
+                    let while_block = parse_block() in
+                    begin
+                        check ";";
+                        While (condition, while_block);
+                    end;
+                end;
+            end
+        | 'p' -> (* Print *)
+            begin
+                check "rint ["; 
+                let a : arithm = parse_arithm() in
+                begin
+                    check ";";
+                    Print a;
+                end;
+            end
+        | _ -> raise ParsingError
+    in let rec aux (parsed: command) : command =
+        try match collect() with
+            | '}' -> parsed (* End of bloc *)
+            | c -> aux (Concat (parsed, parse_instruction c))
+        with
+            | End_of_file -> parsed
+            | ParsingError -> raise ParsingError
+            | e -> raise e
+    in aux Skip;;
+
+let program : command = parse_block ();;
 
 
 
-(*** MAIN FUNCTION ***)
+(*** MAIN ***)
 
-let main : sigma =
-    if (Array.length Sys.argv) != 2 then raise InvalidNumberOfArguments
-    else
-        let initial_memory : sigma = (fun v -> 0)
-        and program : command = parse (Sys.argv.(1))
-        in int_command program initial_memory;;
+let initial_memory : sigma = (fun v -> 0);;
+let res : sigma = int_command program initial_memory;;

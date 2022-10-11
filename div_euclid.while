@@ -3,26 +3,26 @@
 # A correspond au quotient, B au reste
 
 # Valeurs d'entrée
-X := 0 45 -
-Y := 6
+X := [0 45 -];
+Y := [6];
 
 # Initialisation des variables de calcul
-A := 0
-B := X
+A := [0];
+B := [X];
 
 # Calcul
-if 0 <= B then {
-    while Y <= B do {
-        B := B Y -
-        A := A 1 +
-    }
+if [0] <= [B] then {
+    while [Y] <= [B] do {
+        B := [B Y -];
+        A := [A 1 +];
+    };
 } else {
-    while (B <= 0) AND (NOT (B == 0)) do {
-        B := B Y +
-        A := A 1 -
-    }
-}
+    while ([B] <= [0]) AND (NOT ([B] == [0])) do {
+        B := [B Y +];
+        A := [A 1 -];
+    };
+};
 
 # Affichage des résultats
-print A
-print B
+print [A];
+print [B];

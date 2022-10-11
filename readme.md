@@ -36,8 +36,8 @@ The WHILE language is a simple imperative language. The instruction set is very 
     - `(<condition>) AND (<condition>)` 
     - `(<condition>) OR (<condition>)` 
     - `NOT (<condition>)` 
-    - `<arithmetic expression> == <arithmetic expression>`
-    - `<arithmetic expression> <= <arithmetic expression>`
+    - `[<arithmetic expression>] == [<arithmetic expression>]`
+    - `[<arithmetic expression>] <= [<arithmetic expression>]`
 
 ### Instruction syntax
 
@@ -50,7 +50,7 @@ The WHILE language is a simple imperative language. The instruction set is very 
 #### Assignment
 
 ```
-<variable> := <arithmetic expression>
+<variable> := [<arithmetic expression>];
 ```
 
 #### Flow control
@@ -62,18 +62,18 @@ if <condition> then {
     <code block>
 } else {
     <code block>
-}    
+};   
 ```
 ```
 while <condition> do {
     <code block>
-}
+};
 ```
 
 #### Printing
 
 ```
-print <arithmetic expression>
+print [<arithmetic expression>];
 ```
 
 ### Additionnal details
