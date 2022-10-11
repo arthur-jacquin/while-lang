@@ -1,0 +1,253 @@
+%%% Ce document n'est pas à jour.
+
+\documentclass{beamer}
+\title{Un interpréteur pour le langage WHILE}
+\author{Arthur Jacquin}
+\date{}
+
+\usepackage{xcolor}
+\definecolor{beaverred}{RGB}{204,0,0}
+\definecolor{beaverblue}{RGB}{0,68,204}
+\definecolor{beavergreen}{RGB}{0,153,0}
+
+\usepackage{listings}
+\lstdefinestyle{simple}{
+    extendedchars=true,
+    basicstyle=\ttfamily,
+    backgroundcolor=,
+    commentstyle=\color{beavergreen},
+    keywordstyle=\color{beaverblue},
+    numberstyle=\ttfamily\color[rgb]{0.5,0.5,0.5},
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=7pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4,
+    columns=fixed
+}
+\lstset{style=simple}
+
+\usetheme{default}
+\usecolortheme{beaver}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{itemize items}{\color{beaverred}$\bullet$}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Sommaire}
+\begin{itemize}
+\item Introduction
+    \begin{itemize}
+    \item Objet de la présentation
+    \item Fonctionnement général d'un interpréteur
+    \item Langage retenu : OCaml
+    \end{itemize}
+\item Conception
+    \begin{itemize}
+    \item Définir la nature des objets
+    \item Implémenter la logique interprétative
+    \item Concevoir simultanément syntaxe et parsing
+    \end{itemize}
+\item Parsing
+    \begin{itemize}
+    \item RPN pour les expressions arithmétiques
+    \item Fonctions auxiliaires de recherche de motif
+    \item Traitement global
+    \end{itemize}
+\item Exemples
+    \begin{itemize}
+    \item \texttt{factorial.while}
+    \item \texttt{pgcd.while}
+    \end{itemize}
+\item Pour aller plus loin
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Introduction - Objet de la présentation}
+\begin{itemize}
+\item Point de départ : langage WHILE tel qu'étudié lundi
+\item Objectif : concevoir et mettre en oeuvre une implémentation
+\item Exemples de scripts à la fin
+\end{itemize}
+\end{frame}
+% Le but c'est d'expliquer un peu ce que j'ai fait
+% Il y a pas mal de matière donc je vais essayer de couvrir les points les plus intéressants
+% Si vous avez des questions n'hésitez pas à m'interrompre, vraiment
+
+\begin{frame}
+\frametitle{Introduction - Fonctionnement général d'un interpréteur}
+\begin{itemize}
+\item Code source
+\item PARSING $\longrightarrow$ Objects informatiques
+\item INTERPRÉTATION $\longrightarrow$ Résultats
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Introduction - Langage retenu : OCaml}
+\begin{itemize}
+\item Typage fort, possibilité de définir de nouveaux types
+\item Très bon {\it pattern matching}, même sur les types non standards
+\item S'interprète ou se compile, au choix
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Conception - Définir la nature des objets}
+\begin{itemize}
+\item Très important, typage explicite à priviliégier par la suite
+\item Choix de l'ensemble des identifieurs
+\end{itemize}
+\begin{scriptsize}
+\lstinputlisting[language=ML, firstline=13, firstnumber=13, lastline=24]{interpreter.ml}
+\end{scriptsize}
+\end{frame}
+\begin{frame}[fragile]
+\frametitle{Conception - Définir la nature des objets}
+\begin{scriptsize}
+\lstinputlisting[language=ML, firstline=26, firstnumber=26, lastline=48]{interpreter.ml}
+\end{scriptsize}
+\end{frame}
+\begin{frame}[fragile]
+\frametitle{Conception - Définir la nature des objets}
+\begin{itemize}
+\item Fonction principale
+\end{itemize}
+\begin{scriptsize}
+\lstinputlisting[language=ML, firstline=243, firstnumber=243, lastline=249]{interpreter.ml}
+\end{scriptsize}
+% Appel en ligne de commande
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Conception - Implémenter la logique interprétative}
+\begin{scriptsize}
+\lstinputlisting[language=ML, firstline=54, firstnumber=54, lastline=70]{interpreter.ml}
+\end{scriptsize}
+\end{frame}
+% On peut remarquer que l'ordre d'implémentation compte, puisque le typage des objets n'est pas indépendant
+
+% Jusque là rien de très surprenant sur 1. et 2., c'est exactement le travail qu'on a fait lundi
+
+\begin{frame}
+\frametitle{Conception - Concevoir simultanément syntaxe et parsing}
+\begin{itemize}
+\item Simple à utiliser ET simple à analyser (efficacité)
+\item Prendre en compte les modalités de l'interface avec le fichier
+\end{itemize}
+\end{frame}
+% Décrire ce qui va être abordé
+
+\begin{frame}
+\frametitle{Parsing - RPN pour les expressions arithmétiques}
+\begin{itemize}
+\item Les expressions arithmétiques peuvent être complexes
+\item Élément très courant : ce serait bien de trouver une méthode efficace
+\item Une solution : la notation polonaise inversée (RPN) lève toute ambiguité
+% la notation suffixe permet de reconstruire l'arbre associé à l'expression
+% (étant donné un parcours suffixe/préfixe d'arbre où l'on sait distinguer les
+% noeuds internes des feuilles, comme ici avec les litéraux (variable, entier)
+% et les opérateurs (+, *, -), il y a unicité de l'arbre l'ayant généré; c'est
+% pas le cas avec un parcours infixe, dont c'est un peu stupide d'utiliser cette
+% convention en maths parce que ça génère des ambiguités, après il faut parentheser
+% pour se comprendre)
+\item Permet une lecture linéaire de l'expression, avec accumulation des litéraux (variables, entiers) dans une pile et réduction par les opérateurs (+, -, *)
+% Tout ça c'est très bien, on est passé en temps linéaire, mais faire
+% une implémentation efficace reste pas simple, vous regarderez plus en déatil si vous voulez
+\item Mon implémentation ne fonctionne pas avec les nombres négatifs
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Parsing - Fonctions auxiliaires de recherche de motif}
+% Avec les booléens la RPN ça pourrait encore se faire, de toute façon c'est
+% possible avec tout, même les structures de contrôle comme while, mais
+% c'est moins naturel, on veut quand même que le script ressemble à une suite
+% d'instruction
+\begin{itemize}
+\item Moteur de recherche d'expression régulière : échoue à extraire les "arguments"
+\end{itemize}
+\begin{scriptsize}
+\lstinputlisting[language=ML, firstline=199, firstnumber=199, lastline=212]{interpreter.ml}
+\end{scriptsize}
+% Commenter les signatures, les recherches successives
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Parsing - Traitement global}
+% Jusqu'à maintenant, avec les objets à parser, on se doutait bien que
+% c'était une fonction plus grosse qui allait délimiter l'objet puis le
+% donner à analyser aux fonctions déjà faites
+% Maintenant qu'on s'approche des plus gros objets (eg les structures
+% de controle), il faut se demander comment on peut accéder au texte
+% même d'un autre fichier.
+\begin{itemize}
+\item Accès au code source ? Utilisation d'un \texttt{input channel} qui permet de récupérer les lignes les unes après les autres
+% ocaml ne propose pas grand chose, nous laisse directement interagir avec le système
+% primitive fournie par ocaml, qui ne fait que nous la transmettre du kernel: input channel
+% quelque chose où on peut lire dedans, mais le canal se "consumme", cad qu'on
+% avance dans le fichier sans pouvoir revenir en arrière
+% en fait c'est un pointeur, quand on lui demande de lire, il lit jusqu'au prochain
+% saut de ligne, nous communique ce qu'il a lu, et saute à la ligne suivante
+% S'il détecte que c'est la fin de fichier, il nous envoie une erreur
+\item Problème d'expressions sur plusieurs lignes : récursivité
+% Pour parser les instructions on aimerait bien faire la même chose que
+% pour les expressions booléennes, mais il y a un problème pour while et
+% if-then-else: l'instruction occupe plusieurs lignes, alors qu'on les récupère
+% une par une
+% la solution c'est de faire une fonction récursive, qui prend en entrée un
+% canal d'entrée, traite un bloc de code, et lorsque la fin de ce bloc est détectée
+% renvoie la commande associée
+\end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+\frametitle{Parsing - Traitement global}
+\begin{scriptsize}
+\lstinputlisting[language=ML, firstline=214, firstnumber=214, lastline=233]{interpreter.ml}
+\end{scriptsize}
+% travail préliminaire de
+%   gestion des erreurs
+%   détection de fin de bloc
+%   ignorer commentaires et lignes vides
+% une fois qu'on a isolé une instruction simple on revient aux méchanismes précédents
+% concaténation des instructions
+% fermer le canal d'entrée (très important)
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Exemples - \texttt{factorial.while}}
+\begin{scriptsize}
+\lstinputlisting[firstline=1, firstnumber=1, lastline=19]{factorial.while}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Exemples - \texttt{pgcd.while}}
+\begin{scriptsize}
+\lstinputlisting[firstline=1, firstnumber=1, lastline=21]{pgcd.while}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Pour aller plus loin}
+% la grosse limitation c'est l'absence totale de routines, que ce
+% soit sous la forme de fonction, procédures, sauts dans le code...
+\begin{itemize}
+\item \url{https://github.com/arthur-jacquin/while-lang}
+\item Utiliser une fonction récursive dans \texttt{parse\_arithm}
+\item Corriger une erreur dans le traitement des expressions booléennes
+\end{itemize}
+\end{frame}
+
+\end{document}
